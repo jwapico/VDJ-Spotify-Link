@@ -48,17 +48,16 @@ def main():
         seperator = "=" * 150
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         sldl_index_entry = f'"{path}","{artist}","{album}","{title}",{length},{0},{1},{0}'
-        log_contents += f"""
-Downloaded from SoulSeek...
-Title: {title}
-Artist: {artist}
-Spotify URI: {uri}
-Time: {timestamp}
-Filepath: '{path}'
-SLDL Index Entry: {sldl_index_entry}
-
-{seperator}
-"""
+        log_contents += (
+            f"Downloading from SoulSeek...\n"
+            f"Title: {title}\n"
+            f"Artist: {artist}\n"
+            f"Spotify URI: {uri}\n"
+            f"Time: {timestamp}\n"
+            f"Filepath: '{path}'\n"
+            f"SLDL Index Entry: {sldl_index_entry}\n\n"
+            f"{seperator}\n\n"
+        )
         append_log_contents(log_contents, LOG_FILE_PATH)
 
     # if sldl did not find the song, download it from youtube
@@ -77,17 +76,15 @@ SLDL Index Entry: {sldl_index_entry}
         log_contents = ""
         seperator = "=" * 150
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        log_contents = f"""
-Tried to download from SoulSeek and yt-dlp...
-Title: {title}
-Artist: {artist}
-Spotify URI: {uri}
-Time: {timestamp}
-
-Download failed with unexpected state: {sldl_state}
-
-{seperator}
-"""
+        log_contents = (
+            f"Tried to download from SoulSeek and yt-dlp...\n"
+            f"Title: {title}\n"
+            f"Artist: {artist}\n"
+            f"Spotify URI: {uri}\n"
+            f"Time: {timestamp}\n\n"
+            f"DOWNLOAD FAILED - unexpected state: {sldl_state}\n\n"
+            f"{seperator}\n\n"
+        )
         append_log_contents(log_contents, LOG_FILE_PATH)
 
     # get the contents of the file to see if it already contains our new index entry
@@ -130,18 +127,20 @@ def download_song_ytdlp(title: str, artist: str, uri: str, album: str, length: s
     log_content = ""
     ytdlp_output = ""
 
+    # TODO: ctrl f '大掃除' in sldl_helper.log 
+
     # append the logfile with a timestamp, track info, and yt-dlp output and print it
     with open(log_filepath, "a", encoding="utf-8") as log:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        log_content += f"""
-Downloading from yt-dlp...
-Title: {title}
-Artist: {artist}
-Spotify URI: {uri}
-Time: {timestamp}
-Query: {search_query}
+        log_content += (
+            f"Downloading from yt-dlp...\n"
+            f"Title: {title}\n"
+            f"Artist: {artist}\n"
+            f"Spotify URI: {uri}\n"
+            f"Time: {timestamp}\n"
+            f"Query: {search_query}\n\n"
+        )
 
-"""
         # download the file using yt-dlp and necessary flags
         process = subprocess.Popen([
             "yt-dlp",
@@ -182,15 +181,20 @@ Query: {search_query}
             log_content += f"\n\nArtist ({artist}) not found in output: {extracted_text}\n\n"         
 
         # add relevant info the log contents
-        sldl_index_entry = f'"{download_path}","{artist}","{album}","{title}",{length},0,1,0'
-        seperator = "=" * 150
-        log_content += f"""
-Filepath: '{download_path}'
-SLDL Index Entry: {sldl_index_entry}
+        if download_path != "":
+            sldl_index_entry = f'"{download_path}","{artist}","{album}","{title}",{length},0,1,0'
+        else:
+            sldl_index_entry = f'"","{artist}","{album}","{title}",{length},0,2,3'
 
-{seperator}
-        """
-        
+        seperator = "=" * 150
+        # if i put the string literal in the {} expression instead of a variable everything breaks??? wtf python
+        failed_string = "\nDOWNLOAD FAILED - path empty\n"
+        log_content += (
+            f"\nFilepath: '{download_path}'\n"
+            f"SLDL Index Entry: {sldl_index_entry}\n"
+            f"{failed_string if download_path == '' else ''}"
+            f"\n{seperator}\n\n"
+        )
         append_log_contents(log_content, log_filepath)
 
         return download_path
