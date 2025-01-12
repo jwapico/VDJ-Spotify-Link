@@ -41,13 +41,14 @@ def main():
         with open(NEW_INDEX_FILEPATH, "w", encoding="utf-8") as file:
             file.write("filepath,artist,album,title,length,tracktype,state,failurereason\n")
 
+
     # if sldl was able to find and download the song on SoulSeek, create the appropriate index entry
     # sldl expects index entries to look like this: filepath,artist,album,title,length,tracktype,state,failurereason
     if sldl_state == "Downloaded":
         log_contents = ""
         seperator = "=" * 150
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        sldl_index_entry = f'"{path}","{artist}","{album}","{title}",{length},{0},{1},{0}'
+        sldl_index_entry = create_sldl_index_entry(path, artist, album, title, length)
         log_contents += (
             f"Downloading from SoulSeek...\n"
             f"Title: {title}\n"
@@ -63,16 +64,12 @@ def main():
     # if sldl did not find the song, download it from youtube
     elif sldl_state == "Failed":
         download_path = download_song_ytdlp(title, artist, uri, album, length, OUTPUT_PATH, LOG_FILE_PATH)
-        
-        # if the download was successfull extract the filepath from the yt-dlp output and build the correct index entry, if it wasnt, we want the path to be empty and the state field to be 2 (Failed)
-        if download_path != "":
-            sldl_index_entry = f'"{download_path}","{artist}","{album}","{title}",{length},0,1,0'
-        else:
-            sldl_index_entry = f'"","{artist}","{album}","{title}",{length},0,2,3'
+        sldl_index_entry = create_sldl_index_entry(download_path, artist, album, title, length)
+
 
     # if there was a different state, the download likely failed
     else:
-        sldl_index_entry = f'"","{artist}","{album}","{title}",{length},0,2,3'
+        sldl_index_entry = create_sldl_index_entry("", artist, album, title, length)
         log_contents = ""
         seperator = "=" * 150
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -95,6 +92,40 @@ def main():
     with open(NEW_INDEX_FILEPATH, "a", encoding="utf-8") as index_file:
         if lines.count(sldl_index_entry) == 0:
             index_file.write(f"{sldl_index_entry}\n")
+
+# this creates an entry for the _index.sldl file for a given song
+def create_sldl_index_entry(filepath, artist, album, title, length):
+    sldl_index_entry_dict = {
+        filepath: filepath,
+        artist: artist,
+        album: album,
+        title: title,
+        length: length,
+    }
+
+    # if our values are not the correct type, sldl will throw an error. we need to check everything because the metadata provided by soulseek users may be incorrect
+    if not isinstance(filepath, str):
+        sldl_index_entry_dict[filepath] = ""
+
+    if not isinstance(artist, str):
+        sldl_index_entry_dict[artist] = ""
+
+    if not isinstance(album, str):
+        sldl_index_entry_dict[album] = ""
+
+    if not isinstance(title, str):
+        sldl_index_entry_dict[title] = ""
+
+    if not length.isdigit():
+        sldl_index_entry_dict[length] = -1
+
+    # filepath,artist,album,title,length,tracktype,state,failurereason
+    if filepath == "":
+        sldl_index_entry = f'"","{sldl_index_entry_dict[artist]}","{sldl_index_entry_dict[album]}","{sldl_index_entry_dict[title]}",{sldl_index_entry_dict[length]},0,2,3'
+    else:
+        sldl_index_entry = f'"{sldl_index_entry_dict[filepath]}","{sldl_index_entry_dict[artist]}","{sldl_index_entry_dict[album]}","{sldl_index_entry_dict[title]}",{sldl_index_entry_dict[length]},0,1,0'
+
+    return sldl_index_entry
 
 # returns true if the new log contents are already in the log file
 def check_duplicate_log_content(new_log_contents: str, log_filepath: str) -> bool :
@@ -180,11 +211,7 @@ def download_song_ytdlp(title: str, artist: str, uri: str, album: str, length: s
         if not artist.lower() in extracted_text.lower():
             log_content += f"\n\nArtist ({artist}) not found in output: {extracted_text}\n\n"         
 
-        # add relevant info the log contents
-        if download_path != "":
-            sldl_index_entry = f'"{download_path}","{artist}","{album}","{title}",{length},0,1,0'
-        else:
-            sldl_index_entry = f'"","{artist}","{album}","{title}",{length},0,2,3'
+        sldl_index_entry = create_sldl_index_entry(download_path, artist, album, title, length)
 
         seperator = "=" * 150
         # if i put the string literal in the {} expression instead of a variable everything breaks??? wtf python
