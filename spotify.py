@@ -39,11 +39,13 @@ def get_all_playlists(json_filepath=None):
 
 
 def main():
-    playlists = get_all_playlists("playlists.json")
+    playlists = get_all_playlists()
     for playlist in playlists:
-        if not playlist["public"]:
-            print(playlist["name"])
-
+        if playlist["name"] == "sldl":
+            # TODO: this only gets the first 100 tracks
+            tracks = spotipy_client.playlist_tracks(playlist_id=playlist["id"])
+            print(len(tracks["items"]))
+            dump_json(tracks, "tracks.json")
 
 if __name__ == "__main__":
     main()
