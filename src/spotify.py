@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from xml.dom import minidom
+from tinytag import TinyTag
 
 load_dotenv()
 
@@ -15,13 +16,13 @@ REDIRECT_URI = os.getenv("redirect_uri")
 SPOTIFY_SCOPE = "user-library-read"
 spotipy_client = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=SPOTIFY_SCOPE, client_id=CLIENT_ID, client_secret=CLIENT_SECRET, redirect_uri=REDIRECT_URI))
 USER_ID = spotipy_client.current_user()["id"]
+MUSIC_DIR = "D:\DJ\Music\Spotify Liked"
 
 def main():
     playlists = get_all_playlists()
     for playlist in playlists:
-        if playlist["name"] == "test":
-            get_all_playlist_tracks(playlist["id"])
-            create_vdjfolder_from_playlist(playlist_id=playlist["id"], vdjfolder_filepath="output/test.xml")
+        if playlist["name"] == "Cadillac Chronicles":
+            create_vdjfolder_from_playlist(playlist_id=playlist["id"], vdjfolder_filepath="output/test.vdjfolder")
 
 def get_all_playlists(json_filepath=None):
     playlists_info = spotipy_client.user_playlists(USER_ID, limit=1)
@@ -55,6 +56,8 @@ def get_all_playlist_tracks(playlist_id, json_filepath=None):
     if json_filepath is not None:
         dump_json(all_tracks, json_filepath)
 
+    return all_tracks
+
 def dump_json(contents, json_filepath):
     with open(json_filepath, "w", encoding="utf-8") as file:
         json.dump(contents, file)
@@ -63,9 +66,22 @@ def dump_json(contents, json_filepath):
 def create_vdjfolder_from_playlist(playlist_id, vdjfolder_filepath):
     # create the root and song entries
     root = ET.Element("VirtualFolder", noDuplicates="no")
-    ET.SubElement(root, "song1", path="D:/path1.mp3", title="hello title1", artist="hello artist1")
-    ET.SubElement(root, "song2", path="D:/path2.mp3", title="hello title2", artist="hello artist2")
+    playlist_tracks = get_all_playlist_tracks(playlist_id, "output/sldl.json")
+    processed_songs = process_music_dir()
 
+    # for each track in the playlist, find its filepath and create an xml sub element with the info vdj needs
+    for i, track in enumerate(playlist_tracks):
+        spotify_title = track["track"]["name"]
+        spotify_artists = ", ".join([artist["name"] for artist in track["track"]["artists"]])
+
+        # if the song was found in the MUSIC_DIR dict, create an xml subelement with the info vdj needs, if it wasnt found, use spotify info and a palceholder filepath
+        if spotify_title.lower() in processed_songs:
+            metadata_title, metadata_artist, song_path = processed_songs[spotify_title.lower()]
+            ET.SubElement(root, "song", path=song_path, title=metadata_title, artist=metadata_artist, idx=str(i))
+        else:
+            # TODO: need a better way of indexing the dictionary, there are files that exist that are not being found because of non-identical titles
+            ET.SubElement(root, "song", path="Not Found", title=spotify_title, artist=spotify_artists, idx=str(i))
+            
     # create the output_dir if it doesnt already exist
     output_dir = os.path.dirname(vdjfolder_filepath)
     Path(output_dir).mkdir(parents=True, exist_ok=True)
@@ -80,6 +96,38 @@ def create_vdjfolder_from_playlist(playlist_id, vdjfolder_filepath):
         file.write('<?xml version="1.0" encoding="UTF-8"?>\n')
         file.write(pretty_xml.split('\n', 1)[1])
 
+def process_music_dir():
+    processed_songs = {}
+
+    # for each file in the MUSIC_DIR, extract its metadata and add it to the dict
+    for filename in os.listdir(MUSIC_DIR):
+        filepath = os.path.join(MUSIC_DIR, filename)
+
+        if not os.path.isfile(filepath):
+            continue
+
+        try:
+            audio = TinyTag.get(filepath)
+
+            if audio.title and audio.artist:
+                processed_songs[audio.title.lower()] = (audio.title, audio.artist, filepath)
+                # print("Title:" + audio.title) 
+                # print("Artist: " + audio.artist)
+                # print("Genre:" + audio.genre) 
+                # print("Year Released: " + audio.year) 
+                # print("Bitrate:" + str(audio.bitrate) + " kBits/s") 
+                # print("Composer: " + audio.composer) 
+                # print("Filesize: " + str(audio.filesize) + " bytes") 
+                # print("AlbumArtist: " + audio.albumartist) 
+                # print("Duration: " + str(audio.duration) + " seconds") 
+                # print("TrackTotal: " + str(audio.track_total))  
+            else:
+                # TODO: add metadata with information from spotify 
+                print(f"No metadata found for {filename}")
+        except Exception as e:
+            print(f"Error when reading metadata of {filename}: {e}")
+
+    return processed_songs
 
 if __name__ == "__main__":
     main()

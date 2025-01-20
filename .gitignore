@@ -173,4 +173,6 @@ cython_debug/
 sldl.conf
 sldl.exe
 test/*
+output/*
+assets/*
 debug.py
