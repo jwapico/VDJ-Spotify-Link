@@ -177,3 +177,4 @@ output/*
 assets/*
 debug.py
 .vscode/*
+sandbox/*

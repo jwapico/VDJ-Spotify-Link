@@ -20,44 +20,45 @@ import traceback
 
 # path configuration, the script creates a new sldl_helper directory in the same directory sldl was ran in
 # sldl_helper/ contains the log file, the custom _index.sldl, and an _index_history directory thats used to track the sldl generated _index files (though this directory is created by index_fixer.py)
-OUTPUT_PATH = os.getcwd()
+
+# TODO: create our own sql database and use this to create the _index file.
+# TODO: restructure this whole file 
+
+# info fed to the script by sldl
+filepath = sys.argv[1]
+title = sys.argv[2]
+artist = sys.argv[3]
+album = sys.argv[4]
+uri = sys.argv[5]
+length = sys.argv[6]
+failure_reason = sys.argv[7]
+sldl_state = sys.argv[8]
+OUTPUT_PATH = sys.argv[9]
+
 SLDL_HELPER_DIR = OUTPUT_PATH + "\\sldl_helper\\"
 os.makedirs(SLDL_HELPER_DIR, exist_ok=True)
 LOG_FILEPATH = SLDL_HELPER_DIR + "sldl_helper.log"
 CUSTOM_INDEX_FILEPATH = SLDL_HELPER_DIR + "_index.sldl"
 
-# TODO: create our own sql database and use this to create the _index file.
-# TODO: create one main.py file that runs sldl and performs other functions
-
 def main():
-    # info fed to the script by sldl
-    path = sys.argv[1]
-    title = sys.argv[2]
-    artist = sys.argv[3]
-    album = sys.argv[4]
-    uri = sys.argv[5]
-    length = sys.argv[6]
-    failure_reason = sys.argv[7]
-    sldl_state = sys.argv[8]
-
     # if our custom _index.sldl file doesn't already exist, create it with the header
     if not os.path.exists(CUSTOM_INDEX_FILEPATH):
         with open(CUSTOM_INDEX_FILEPATH, "w", encoding="utf-8") as file:
             file.write("filepath,artist,album,title,length,tracktype,state,failurereason\n")
 
     # if sldl was able to find and download the song on SoulSeek, create the appropriate index entry
-    if sldl_state == "Downloaded" or path != "":
+    if sldl_state == "Downloaded" or filepath != "":
         log_contents = ""
         seperator = "=" * 150
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        sldl_index_entry = create_sldl_index_entry(path, artist, album, title, length)
+        sldl_index_entry = create_sldl_index_entry(filepath, artist, album, title, length)
         log_contents += (
             f"Downloading from SoulSeek...\n"
             f"Title: {title}\n"
             f"Artist: {artist}\n"
             f"Spotify URI: {uri}\n"
             f"Time: {timestamp}\n"
-            f"Filepath: '{path}'\n"
+            f"Filepath: '{filepath}'\n"
             f"SLDL Index Entry: {sldl_index_entry}\n\n"
             f"{seperator}\n\n"
         )
