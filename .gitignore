@@ -170,11 +170,9 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-sldl.conf
-sldl.exe
-test/*
-output/*
-assets/*
-debug.py
+
+# Added by me
 .vscode/*
-sandbox/*
+test/*
+assets/sldl.conf
+output/*

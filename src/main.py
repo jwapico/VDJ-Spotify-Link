@@ -14,30 +14,31 @@ def main():
 	parser.add_argument("pos_output_path", nargs="?", default=os.getcwd(), help="The output directory in which your files will be downloaded")
 	parser.add_argument("--output-path", dest="output_path", help="The output directory in which your files will be downloaded")
 
-	# path config is all relative to the path to this file
-	SLDL_EXE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../assets/sldl.exe")
+	# path config is all relative to the path of this file
+	SLDL_EXE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../bin/sldl.exe")
+	SLDL_CONF_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../assets/sldl.conf")
 	INDEX_FIXER_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index_fixer.py")
 
 	# parse the arguments and update sldl.conf with the output path
 	args = parser.parse_args()
 	PLAYLIST_URL = args.playlist_url or args.pos_playlist_url
 	OUTPUT_PATH = os.path.abspath(args.output_path or args.pos_output_path)
-	update_sldl_conf(OUTPUT_PATH)
+	os.makedirs(OUTPUT_PATH, exist_ok=True)
+	update_sldl_conf(OUTPUT_PATH, SLDL_CONF_PATH)
 
 	if not PLAYLIST_URL:
 		parser.error("The playlist URL is required")
 
 	# create and run the commands 
-	sldl_command = [SLDL_EXE_PATH, PLAYLIST_URL, "--path", OUTPUT_PATH, "--profile", "spotify-likes"]
+	sldl_command = [SLDL_EXE_PATH, PLAYLIST_URL, "--path", OUTPUT_PATH, "--profile", "spotify-likes", "--config", SLDL_CONF_PATH]
 	index_fixer_command = ["python", INDEX_FIXER_PATH, OUTPUT_PATH]
 	subprocess.run(sldl_command)
 	subprocess.run(index_fixer_command)
 
 # this function updates the on-complete line in sldl.conf to pass in the user specified output path to sldl_helper.py
-def update_sldl_conf(new_output_path):
-	SLDL_CONF_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../assets/sldl.conf")
+def update_sldl_conf(new_output_path, sldl_conf_path):
 
-	with open(SLDL_CONF_PATH, "r", encoding="utf-8") as conf_file:
+	with open(sldl_conf_path, "r", encoding="utf-8") as conf_file:
 		lines = conf_file.readlines()
 
 	# we want to modify the line in sldl.conf that starts with 'on-complete = s:python'
@@ -57,7 +58,7 @@ def update_sldl_conf(new_output_path):
 		new_lines[-1] = " ".join(sldl_helper_line)
 
 	# write back the new lines
-	with open(SLDL_CONF_PATH, "w", encoding="utf-8") as conf_file:
+	with open(sldl_conf_path, "w", encoding="utf-8") as conf_file:
 		conf_file.writelines(new_lines)
 
 if __name__ == "__main__":
