@@ -26,6 +26,9 @@ os.makedirs(SLDL_HELPER_DIR, exist_ok=True)
 LOG_FILEPATH = SLDL_HELPER_DIR + "sldl_helper.log"
 CUSTOM_INDEX_FILEPATH = SLDL_HELPER_DIR + "_index.sldl"
 
+# TODO: create our own sql database and use this to create the _index file.
+# TODO: create one main.py file that runs sldl and performs other functions
+
 def main():
     # info fed to the script by sldl
     path = sys.argv[1]

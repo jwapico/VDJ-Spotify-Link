@@ -13,16 +13,39 @@ load_dotenv()
 CLIENT_ID = os.getenv("client_id")
 CLIENT_SECRET = os.getenv("client_secret")
 REDIRECT_URI = os.getenv("redirect_uri")
-SPOTIFY_SCOPE = "user-library-read"
+SPOTIFY_SCOPE = "user-library-read playlist-modify-public"
 spotipy_client = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=SPOTIFY_SCOPE, client_id=CLIENT_ID, client_secret=CLIENT_SECRET, redirect_uri=REDIRECT_URI))
 USER_ID = spotipy_client.current_user()["id"]
 MUSIC_DIR = "D:\DJ\Music\Spotify Liked"
 
 def main():
-    playlists = get_all_playlists()
-    for playlist in playlists:
-        if playlist["name"] == "Cadillac Chronicles":
-            create_vdjfolder_from_playlist(playlist_id=playlist["id"], vdjfolder_filepath="output/test.vdjfolder")
+    create_spotify_playlist_from_music_dir("D:\DJ\Music\DJ Music\NeoSoul")
+
+def create_spotify_playlist_from_music_dir(music_dir):
+    pass
+
+def create_spotify_playlist_from_vdjfolder(vdjfolder_filepath, playlist_name):
+    tree = ET.parse(vdjfolder_filepath)
+
+    track_ids = []
+    for child in tree.getroot():
+        if "title" in child.attrib and "artist" in child.attrib:
+            title = child.attrib["title"]
+            artist = child.attrib["artist"]
+            track_id = spotipy_client.search(q=f"artist: {artist} track: {title}", type="track")
+            track_ids.append(track_id["tracks"]["items"][0]["id"])
+    
+    track_uris = ["spotify:track:" + track_id for track_id in track_ids]
+    spotipy_client.user_playlist_create(USER_ID, playlist_name)
+    playlist_id = get_playlist_id(playlist_name)
+    spotipy_client.user_playlist_add_tracks(USER_ID, playlist_id, track_uris)
+
+def get_playlist_id(playlist_name):
+    for playlist in get_all_playlists():
+        if playlist["name"] == playlist_name:
+            return playlist["id"]
+
+    return -1
 
 def get_all_playlists(json_filepath=None):
     playlists_info = spotipy_client.user_playlists(USER_ID, limit=1)
