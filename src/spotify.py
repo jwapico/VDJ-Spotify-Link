@@ -10,6 +10,10 @@ from tinytag import TinyTag
 
 load_dotenv()
 
+# ALTERNATIVES TO FEATURES ENDPOINT
+#   - https://essentia.upf.edu/models.html
+#   - https://mtg.github.io/essentia.js/examples/demos/mood-classifiers/
+
 CLIENT_ID = os.getenv("client_id")
 CLIENT_SECRET = os.getenv("client_secret")
 REDIRECT_URI = os.getenv("redirect_uri")

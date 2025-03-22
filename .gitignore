@@ -176,3 +176,4 @@ cython_debug/
 test/*
 assets/sldl.conf
 output/*
+assets/all_music.sqlite

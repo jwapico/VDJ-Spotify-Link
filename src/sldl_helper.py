@@ -5,6 +5,7 @@ import re
 import os
 import csv
 import traceback
+import sqlite3
 
 # https://github.com/fiso64/slsk-batchdl
 
@@ -35,10 +36,11 @@ failure_reason = sys.argv[7]
 sldl_state = sys.argv[8]
 OUTPUT_PATH = sys.argv[9]
 
-SLDL_HELPER_DIR = OUTPUT_PATH + "\\sldl_helper\\"
+SLDL_HELPER_DIR = OUTPUT_PATH + "/sldl_helper/"
 os.makedirs(SLDL_HELPER_DIR, exist_ok=True)
 LOG_FILEPATH = SLDL_HELPER_DIR + "sldl_helper.log"
 CUSTOM_INDEX_FILEPATH = SLDL_HELPER_DIR + "_index.sldl"
+DATABASE_FILEPATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../assets/all_music.sqlite")
 
 def main():
     # if our custom _index.sldl file doesn't already exist, create it with the header
@@ -86,16 +88,30 @@ def main():
         )
         append_log_contents(log_contents)
 
-    # update_index_file(sldl_index_entry)
-    # # get the contents of the file to see if it already contains our new index entry
-    # with open(index_filepath, "r", encoding="utf-8") as index_file:
-    #     lines = index_file.read()
+def add_song_to_db(filepath, title, artist, album, length, uri):
+    conn = sqlite3.connect(DATABASE_FILEPATH)
+    cursor = conn.cursor()
 
-    # # append the new entry to the end of the custom index file if its not already there
-    # # TODO: if the download was successfull, we should check if an entry with the same song artist etc exists that failed. if there is one we should delete it
-    # with open(index_filepath, "a", encoding="utf-8") as index_file:
-    #     if lines.count(new_index_entry) == 0:
-    #         index_file.write(f"{new_index_entry}\n")
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS all_music (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        filepath TEXT NOT NULL UNIQUE,
+        title TEXT,
+        artist TEXT,
+        album TEXT,
+        length INTEGER,
+        uri TEXT
+    )
+    ''')
+
+    try:
+        song_data = (filepath, title, artist, album, length, uri)
+        cursor.execute("INSERT INTO all_music (filepath, title, artist, album, length, uri) VALUES (?, ?, ?, ?, ?, ?)", song_data)
+        conn.commit()
+    except sqlite3.IntegrityError:
+        print("Error: a song with this filepath already exists in the database.")
+    finally:
+        conn.close()
 
 
 # downloads the song with title and artist from youtube using yt-dlp, writes logging information to a log file
